@@ -1,5 +1,6 @@
 from mine_sweeper import *
 from view import *
+from brain import *
 
 class Connector(object):
 
@@ -8,6 +9,7 @@ class Connector(object):
         self.start = start
         self.model = model(row, col, self)
         self.view = view(row, col, self, root)
+        self.brain = max_brain(row, col, self, root, self.model, self.view)
 
     # region Methods
 
@@ -20,10 +22,19 @@ class Connector(object):
     def check_if_found_all_bombs(self, marked_bombs):
         return self.model.check_if_found_all_bombs(marked_bombs)
 
+    def clean_probabilities_from_assured_empty_places(self):
+        self.view.clean_probabilities_from_assured_empty_places(self.model.clean_probabilities_from_assured_empty_places())
+
+    def update_if_all_marked_bombs_right(self):
+        self.view.update_if_all_marked_bombs_right()
+
     def close_call_backs(self):
         self.view.close_call_backs()
 
     def restart(self):
         self.start.restart()
+
+    def brain_play(self):
+        self.brain.play()
 
     # endregion

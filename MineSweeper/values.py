@@ -5,13 +5,14 @@ class SettingValues(object):
         self.HEIGHT = 1080
         self.WIDTH = 1920
 
-        self.BOARD_HEIGHT = 20
-        self.BOARD_WIDTH = 20
+        self.BOARD_HEIGHT = 30
+        self.BOARD_WIDTH = 30
 
-        self.AMOUNT_OF_BOMBS = 40
+        self.AMOUNT_OF_BOMBS = 99
 
-        self.TIMER = 1000 # miliseconds
-        self.CLEAR_CYCLE = 1800 # Used to avoid huge quantity of call backs. Set to be every 30 minutes
+        self.TIMER = 1000  # milliseconds
+        self.CLEAR_CYCLE = 1800  # Used to avoid huge quantity of call backs. Set to be every 30 minutes
+        self.DELAY_MODIFIER = 0.05  # seconds
 
 
 class ConstantValues(object):

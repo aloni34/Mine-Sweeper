@@ -2,8 +2,6 @@ from values import *
 from tkinter import *
 import tkinter as tk
 from tkinter import ttk
-import tkinter.ttk
-import time
 
 class view(object):
 
@@ -18,6 +16,7 @@ class view(object):
         self.board = self.create_board(self.frame, rows, columns)
         self.end_button = self.construct_end_button(self.root, 0.02, 0.02, 0.05, 0.05)
         self.restart_button = self.construct_restart_button(self.root, 0.02, 0.1, 0.05, 0.05)
+        self.play_ai =  self.construct_ai_button(self.root, 0.02, 0.18, 0.05, 0.05)
         self.bombs_label = self.construct_show_amount_of_bombs_label(self.root, 0.5, 0.02, 0.05, 0.05)
         self.time_label = self.construct_time_label(self.root, 0.4, 0.02, 0.05, 0.05)
 
@@ -46,56 +45,55 @@ class view(object):
     # region Graphics
 
     def construct_frame(self, root, r_x, r_y, r_w, r_h):
-
         frame = ttk.Frame(root)
-        frame.place(relx = r_x, rely = r_y, relwidth = r_w, relheight = r_h)
-        frame.config(padding=(10,10))
-
+        frame.place(relx=r_x, rely=r_y, relwidth=r_w, relheight=r_h)
+        frame.config(padding=(10, 10))
         return frame
 
     def construct_end_button(self, root, r_x, r_y, r_w, r_h):
-
         button = ttk.Button(root, text="End")
-        button.place(relx = r_x, rely = r_y, relwidth = r_w, relheight = r_h)
+        button.place(relx=r_x, rely=r_y, relwidth=r_w, relheight=r_h)
         button.config(command=self.end_game)
         return button
 
     def construct_restart_button(self, root, r_x, r_y, r_w, r_h):
-
         button = ttk.Button(root, text="Restart")
-        button.place(relx = r_x, rely = r_y, relwidth = r_w, relheight = r_h)
+        button.place(relx=r_x, rely=r_y, relwidth=r_w, relheight=r_h)
         button.config(command=self.connector.restart)
+        return button
+
+    def construct_ai_button(self, root, r_x, r_y, r_w, r_h):
+        button = ttk.Button(root, text="AI")
+        button.place(relx=r_x, rely=r_y, relwidth=r_w, relheight=r_h)
+        button.config(command=self.connector.brain_play)
         return button
 
     def construct_show_amount_of_bombs_label(self, root, r_x, r_y, r_w, r_h):
         label = ttk.Label(root, text="Bombs X  " + str(S_T.AMOUNT_OF_BOMBS))
-        label.place(relx = r_x, rely = r_y, relwidth = r_w, relheight = r_h)
+        label.place(relx=r_x, rely=r_y, relwidth=r_w, relheight=r_h)
         return label
-
 
     def construct_time_label(self, root, r_x, r_y, r_w, r_h):
         label = ttk.Label(root, text="Seconds: ")
-        label.place(relx = r_x, rely = r_y, relwidth = r_w, relheight = r_h)
+        label.place(relx=r_x, rely=r_y, relwidth=r_w, relheight=r_h)
         return label
 
     def colors(self):
-
-        dt = {}
-
-        dt[-1] = C_V.EMPTY_LABEL_COLOR_CHECKED
-        dt[0] = C_V.EMPTY_LABEL_COLOR_UNCHECKED
-        dt[1] = C_V.ONE_BOMB
-        dt[2] = C_V.TWO_BOMB
-        dt[3] = C_V.THREE_BOMB
-        dt[4] = C_V.FOUR_BOMB
-        dt[5] = C_V.FIVE_BOMB
-        dt[6] = C_V.SIX_BOMB
-        dt[7] = C_V.SEVEN_BOMB
-        dt[8] = C_V.EIGHT_BOMB
-        dt[9] = C_V.MARKED_BOMB
-        dt[10] = C_V.EXPOSE_BOMB
-        dt[11] = C_V.HOVER_LABEL_COLOR
-
+        dt = {
+            -1: C_V.EMPTY_LABEL_COLOR_CHECKED,
+            0: C_V.EMPTY_LABEL_COLOR_UNCHECKED,
+            1: C_V.ONE_BOMB,
+            2: C_V.TWO_BOMB,
+            3: C_V.THREE_BOMB,
+            4: C_V.FOUR_BOMB,
+            5: C_V.FIVE_BOMB,
+            6: C_V.SIX_BOMB,
+            7: C_V.SEVEN_BOMB,
+            8: C_V.EIGHT_BOMB,
+            9: C_V.MARKED_BOMB,
+            10: C_V.EXPOSE_BOMB,
+            11: C_V.HOVER_LABEL_COLOR
+        }
         return dt
 
     # endregion
@@ -104,23 +102,19 @@ class view(object):
 
     def hover_on(self, event):
         row, col = self.retrieve_label_location(event)
-
         hover_label = self.board[row][col]
         value = self.connector.model.board[row][col]
 
         if value == 0 or value == 9:
             hover_label.config(background=self.color[11])
 
-
     def hover_off(self, event):
         row, col = self.retrieve_label_location(event)
-
         hover_label = self.board[row][col]
         value = self.connector.model.board[row][col]
 
         if value == 0 or value == 9:
             hover_label.config(background=self.color[0])
-
 
     def action_right_click(self, event):
 
@@ -137,21 +131,13 @@ class view(object):
 
             if [row, col] not in self.marked_bombs: # marking
 
-                self.marked_bombs.append([row, col])
-                self.update_labels([[row, col, 9]])
-                self.amount_of_marked_bombs += 1
-                self.bombs_label.config(text="Bombs X  " + str(S_T.AMOUNT_OF_BOMBS-self.amount_of_marked_bombs))
+                self.mark_bomb(row, col)
+
                 cur_label.unbind("<Enter>")  # hover on
                 cur_label.unbind("<Leave>")  # hover off
 
                 # check if we marked all the bombs, if so checks if all the positions match the marked positions
-                if S_T.AMOUNT_OF_BOMBS == self.amount_of_marked_bombs:
-                    if self.connector.check_if_found_all_bombs(self.marked_bombs):
-                        self.case_reveal()
-                        print("You Won!\nCongratulations")
-                        self.bombs_label.config(text="You won!")
-                    else:
-                        print("Incorrect")
+                self.update_if_all_marked_bombs_right()
 
             else: # unmarking
 
@@ -168,7 +154,6 @@ class view(object):
     # region Methods
 
     def create_board(self, root, rows, columns):
-
         board = []
         r_y = 1 / rows
         r_x = 1 / columns
@@ -176,23 +161,26 @@ class view(object):
         r_h = r_y * 0.8
         color = C_V.EMPTY_LABEL_COLOR_UNCHECKED
 
-        for y in range(0, rows):
+        # Batch creation and placement of labels
+        labels = [
+            [
+                ttk.Label(root, background=color, anchor=CENTER)
+                for _ in range(columns)
+            ]
+            for _ in range(rows)
+        ]
 
+        # Place labels and bind events in a single loop
+        for y in range(rows):
             row_of_labels = []
-
-            for x in range(0, columns):
-
-                label = ttk.Label(root, background=color, anchor=CENTER)
-                label.place(relx=r_x*x, rely=r_y*y, relwidth=r_w, relheight=r_h)
-                self.bind_all(label)
+            for x in range(columns):
+                label = labels[y][x]
+                label.place(relx=r_x * x, rely=r_y * y, relwidth=r_w, relheight=r_h)
+                self.bind_all(label)  # Consider if this can be moved outside depending on context
                 row_of_labels.append(label)
-
-
             board.append(row_of_labels)
 
         return board
-
-
 
     def retrieve_label_location(self, event):
 
@@ -219,6 +207,23 @@ class view(object):
                 cur_label.unbind("<Enter>")  # hover on
                 cur_label.unbind("<Leave>")  # hover off
 
+    def show_text(self, updates):
+        for update in updates:
+            cur_label = self.board[update[0]][update[1]]
+            value = update[2]
+            cur_label.config(font=self.font, text=value)
+
+    def update_if_all_marked_bombs_right(self):
+
+        # check if we marked all the bombs, if so checks if all the positions match the marked positions
+        if S_T.AMOUNT_OF_BOMBS == self.amount_of_marked_bombs:
+            if self.connector.check_if_found_all_bombs(self.marked_bombs):
+                self.case_reveal()
+                print("You Won!\nCongratulations")
+                self.bombs_label.config(text="You won!")
+            else:
+                print("Incorrect")
+
     def case_reveal(self):
         self.expose_bombs()
         self.freeze_board()
@@ -234,11 +239,20 @@ class view(object):
                 elif cur_value <= 0 or cur_value >= 9:
                     self.unbind_all(cur_label)
 
+    def mark_bomb(self, row, col):
+        self.marked_bombs.append([row, col])
+        self.update_labels([[row, col, 9]])
+        self.amount_of_marked_bombs += 1
+        self.bombs_label.config(text="Bombs X  " + str(S_T.AMOUNT_OF_BOMBS - self.amount_of_marked_bombs))
 
     def expose_bombs(self):
         bomb_places = self.connector.model.bomb_places
         for bomb_place in bomb_places:
             self.board[bomb_place[0]][bomb_place[1]].config(background=self.color[10])
+
+    def clean_probabilities_from_assured_empty_places(self, empty_places):
+        for empty_place in empty_places:
+            self.board[empty_place[0]][empty_place[1]].config(text="")
 
     def bind_all(self, cur_label):
         cur_label.bind("<Enter>", self.hover_on) # hover on
@@ -286,7 +300,6 @@ class view(object):
     def recall_call_backs(self): # recalling call backs
         self.cycle_call_backs()
         self.update_time()
-
 
     # end all call backs
     def close_call_backs(self):

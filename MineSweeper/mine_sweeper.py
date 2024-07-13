@@ -11,10 +11,11 @@ class model(object):
         self.length_row = rows
         self.length_col = columns
 
-        self.update_places = []
-        self.bomb_places = []
+        self.update_places = []  # format of [row, col, value]
+        self.bomb_places = []  # format of [row, col]
 
         self.is_first = True
+        self.is_lost = False
 
         # connections
         self.connector = connector
@@ -22,87 +23,70 @@ class model(object):
     # region Methods
 
     def print_board(self):
-        for i in self.board:
-            print(i)
+        for row in self.board:
+            print(' '.join(map(str, row)))
 
     def play(self, row, col):
-
         self.update_places = []
 
-        if self.is_first: # first move
-
-            self.is_first = False
-            self.first_place_on_board(row, col)
-
-            # input how many mines
-            #self.amount_of_mines = int(input("enter how many mines "))
-
-            # check for available places
-            self.available_place = self.available_places()
-            self.available_place.remove([row,col])
-
-
-            # add additional places around the first place and remove them from available places for bombs
-            additional_places = self.get_next_moves_expanded(row, col, 0)
-            for place in additional_places:
-                self.available_place.remove(place)
-
-            # places mines
-            self.place_mines()
-            self.recursive_placement(row, col)
-
-
-        else: # after the first move
-
-            # landed on an empty place
-            if self.board[row][col] == 0:
-                self.recursive_placement(row, col)
-
-            else:
-                # In the case where landed on a bomb
-                if self.board[row][col] == 9:
-                    print("You lost!\nLanded on a bomb")
-                    self.connector.view.case_reveal()
-                # Marked other invalid place; somewhere which was already checked
-                else:
-                    print("Invalid Place")
+        if self.is_first:
+            self.handle_first_move(row, col)
+        else:
+            self.handle_subsequent_move(row, col)
 
         return self.update_places
 
+    def handle_first_move(self, row, col):
+        self.is_first = False
+        self.first_place_on_board(row, col)
+
+        # Initialize available places and remove the first move
+        self.available_place = self.available_places()
+        self.available_place.remove([row, col])
+
+        # Remove additional places around the first move from available places
+        for place in self.filter_moves(self.get_next_moves_expanded(row, col), 0):
+            self.available_place.remove(place)
+
+        # Place mines and perform the first recursive placement
+        self.place_mines()
+        self.recursive_placement(row, col)
+
+    def handle_subsequent_move(self, row, col):
+        if self.board[row][col] == 0:
+            self.recursive_placement(row, col)
+        elif self.board[row][col] == 9:
+            print("You lost!\nLanded on a bomb")
+            self.connector.view.case_reveal()
+            self.is_lost = True
+        else:
+            print("Invalid Place")
+
     def recursive_placement(self, row, col):
 
-        # check for bombs near by, if there are, then, don't continue the recursive operation, else, continue
-        amount_of_bombs_near = len(self.get_next_moves_expanded(row, col, 9))
+        # Count the number of bombs nearby
+        nearby_bombs = len(self.filter_moves(self.get_next_moves_expanded(row, col), 9))
 
-        # if there are no bombs near by
-        if amount_of_bombs_near == 0:
-
-            # place the current place as a check place
-            self.board[row][col] = -1
-            # adds the place to update for checked value
+        # If no bombs are nearby, continue the recursion
+        if nearby_bombs == 0:
+            self.board[row][col] = -1  # Mark the current place as checked
             self.update_places.append([row, col, -1])
 
-            # obtain the next available moves
-            moves = self.get_next_moves_expanded(row, col, 0)
+            # Get the next available moves
+            moves = self.filter_moves(self.get_next_moves_expanded(row, col), 0)
 
-            # no moves, end operation
-            if moves == []:
+            # If there are no moves, end the operation
+            if not moves:
                 return
 
-            # continue to check for the next empty spaces
+            # Recursively check the next empty spaces
             for move in moves:
-                # this check is here for the case an available place that was available before is no longer available (update was made in the recursive check)
-                if self.board[move[0]][move[1]] == 0:
-                    # continue to check for more available moves
+                if self.board[move[0]][move[1]] == 0:  # Check if the move is still valid
                     self.recursive_placement(move[0], move[1])
-
-
         else:
-            # in the case there are bombs near by, update the current place to be the number of bombs near by
-            self.board[row][col] = amount_of_bombs_near
-            self.update_places.append([row, col, amount_of_bombs_near])
-
-        return
+            # If bombs are nearby, update the current place with the bomb count
+            self.board[row][col] = nearby_bombs
+            self.update_places.append([row, col, nearby_bombs])
 
     def first_place_on_board(self, row, col):
         self.board[row][col] = -1
@@ -111,84 +95,66 @@ class model(object):
         return [[0 for i in range(columns)] for j in range(rows)]
 
     def available_places(self):
-
-        lst = []
-        row_len = len(self.board)
-        col_len = len(self.board[0])
-
-        for row in range(row_len):
-            for col in range(col_len):
-                lst.append([row,col])
-
-        return lst
+        return [[row, col] for row in range(len(self.board)) for col in range(len(self.board[0]))]
 
     def place_mines(self):
-
-        for i in range(self.amount_of_mines):
-
+        for _ in range(self.amount_of_mines):
             position = random.choice(self.available_place)
             self.board[position[0]][position[1]] = 9
             self.available_place.remove(position)
             self.bomb_places.append(position)
 
-        self.available_place = []
+    def get_next_moves(self, row, col): # 4 places
 
-    def get_next_moves(self, row, col, required_value): # 4 places
+        directions = [
+            (1, 0),  # Down
+            (-1, 0),  # Up
+            (0, 1),  # Right
+            (0, -1)  # Left
+        ]
 
-        next_moves = []
-
-        if row+1 < self.length_row:
-            next_moves.append([row + 1, col]) # ->
-
-        if row-1 >= 0:
-            next_moves.append([row - 1, col])  # <-
-
-        if col+1 < self.length_col:
-            next_moves.append([row, col + 1])  # V
-
-        if col-1 >= 0:
-            next_moves.append([row, col - 1])  # ^
-
-        # removes moves where the value is not the value given
-        for move in next_moves:
-            if self.board[move[0]][move[1]] != required_value:
-                next_moves.remove(move)
+        next_moves = [
+            [row + dr, col + dc]
+            for dr, dc in directions
+            if 0 <= row + dr < self.length_row and 0 <= col + dc < self.length_col
+        ]
 
         return next_moves
 
-    def get_next_moves_expanded(self, row, col, required_value): # 8 places
+    def get_next_moves_expanded(self, row, col): # 8 places
 
-        next_moves = []
+        directions = [
+            (1, 0),  # Down
+            (1, 1),  # Down-Right
+            (1, -1),  # Down-Left
+            (-1, 0),  # Up
+            (-1, 1),  # Up-Right
+            (-1, -1),  # Up-Left
+            (0, 1),  # Right
+            (0, -1)  # Left
+        ]
 
-        if row+1 < self.length_row:
-            next_moves.append([row + 1, col]) # ->
-            if col + 1 < self.length_col:
-                next_moves.append([row + 1, col + 1])  # V->
-            if col - 1 >= 0:
-                next_moves.append([row + 1, col - 1])  # ^->
-
-        if row-1 >= 0:
-            next_moves.append([row - 1, col])  # <-
-            if col + 1 < self.length_col:
-                next_moves.append([row - 1, col + 1])  # <-V
-            if col - 1 >= 0:
-                next_moves.append([row - 1, col - 1])  # <-^
-
-        if col+1 < self.length_col:
-            next_moves.append([row, col + 1])  # V
-
-        if col-1 >= 0:
-            next_moves.append([row, col - 1])  # ^
-
-        # Filter moves where the value is not the required value
-        next_moves = [move for move in next_moves if self.board[move[0]][move[1]] == required_value]
+        next_moves = [
+            [row + dr, col + dc]
+            for dr, dc in directions
+            if 0 <= row + dr < self.length_row and 0 <= col + dc < self.length_col
+        ]
 
         return next_moves
+
+    def filter_moves(self, moves, value_to_keep):
+        return [move for move in moves if self.board[move[0]][move[1]] == value_to_keep]
 
     def check_if_found_all_bombs(self, marked_bombs):
-        for marked_bomb in marked_bombs:
-            if marked_bomb not in self.bomb_places:
-                return False
-        return True
+        return all(marked_bomb in self.bomb_places for marked_bomb in marked_bombs)
+
+    def clean_probabilities_from_assured_empty_places(self):
+
+        empty_places = []
+        for row in range(len(self.board)):
+            for col in range(len(self.board[row])):
+                if self.board[row][col] <= 0 or self.board[row][col] == 9:
+                    empty_places.append([row, col])
+        return empty_places
 
     # endregion

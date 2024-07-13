@@ -2,7 +2,6 @@ from connector import *
 from values import *
 from tkinter import *
 
-
 class Start(object):
 
     def __init__(self):
@@ -27,7 +26,6 @@ class Start(object):
 
         self.root.mainloop()
 
-
     def restart(self):
 
         self.controller.close_call_backs()
@@ -38,8 +36,6 @@ class Start(object):
 def main():
 
     start = Start()
-
-
 
 
 if __name__ == '__main__':
