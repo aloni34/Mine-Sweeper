@@ -81,8 +81,7 @@ class model(object):
 
             # Recursively check the next empty spaces
             for move in moves:
-                if self.board[move[0]][move[1]] == 0:  # Check if the move is still valid
-                    self.recursive_placement(move[0], move[1])
+                self.recursive_placement(move[0], move[1])
         else:
             # If bombs are nearby, update the current place with the bomb count
             self.board[row][col] = nearby_bombs
@@ -157,4 +156,15 @@ class model(object):
                     empty_places.append([row, col])
         return empty_places
 
+    def reset(self):
+
+        self.board = self.create_board(self.length_row, self.length_col)
+        self.available_place = []
+        self.amount_of_mines = S_T.AMOUNT_OF_BOMBS
+
+        self.update_places = []  # format of [row, col, value]
+        self.bomb_places = []  # format of [row, col]
+
+        self.is_first = True
+        self.is_lost = False
     # endregion

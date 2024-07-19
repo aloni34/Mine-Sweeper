@@ -1,10 +1,11 @@
 from values import *
+import tkinter as tk
 import random
 import time
 
 class max_brain(object):
 
-    def __init__(self, row, col, connector, root, model, view):
+    def __init__(self, row, col, connector, root, model, view=None):
 
         self.root = root
         self.view = view
@@ -26,59 +27,19 @@ class max_brain(object):
 
         self.is_probabilities_rechecked = False
 
+        self.delay = S_T.DELAY_MODIFIER
+        self.call_backs = []
+
+
+
     def play(self):
 
         # first move
         self.first_play()
 
-        # as long as there are available moves
-        while self.probabiliy_places != {}:
+        # continuing play
+        self.continuing_play_call_back()
 
-            self.root.update()
-            time.sleep(S_T.DELAY_MODIFIER)
-
-            # retrieve the maximum probability
-            max_place = max(self.probabiliy_places, key=self.probabiliy_places.get)
-            max_probability = self.probabiliy_places[max_place]
-
-            # bomb over there
-            if max_probability == 1:
-                self.maximum_assured(max_place)
-
-            else:
-
-                # retrieve the minimum probability
-                min_place = min(self.probabiliy_places, key=self.probabiliy_places.get)
-                min_probability = self.probabiliy_places[min_place]
-
-                # click assured (no bomb)
-                if min_probability == 0:
-                    self.minimum_assured(min_place)
-
-                # possibility that missed places that are not updated for the correct probability
-                elif not self.is_probabilities_rechecked:
-                    self.is_probabilities_rechecked = True
-                    self.recheck_probabilities()
-
-                # in the case we rechecked the probabilities and still didn't obtain assured 100% or 0% probability
-                # then we choose the lowest place and hope it isn't a bomb
-                else:
-                    time.sleep(3)
-                    self.is_probabilities_rechecked = False
-                    self.minimum_assured(min_place)
-                    # if we lost
-                    if self.model.is_lost:
-                        break
-
-        # clean the unnecessary text from the board
-        self.connector.clean_probabilities_from_assured_empty_places()
-
-        # reveal bomb places and show if we won
-        self.connector.update_if_all_marked_bombs_right()
-        self.root.update()
-
-        # how much the algorithm succeeded
-        print(self.check_bombs_accuracy())
 
     # check the probability
     def probability_checker(self, moves):
@@ -89,8 +50,8 @@ class max_brain(object):
             row = move[0]
             col = move[1]
 
-            all_near = self.model.get_next_moves_expanded(row, col) # all places near by
-            p_checks = [near for near in all_near if self.board_copy[near[0]][near[1]] in [0, 9]]  # undiscovered places
+            all_near = self.model.get_next_moves_expanded(row, col) # all places nearby
+            p_checks = [near for near in all_near if self.board_copy[near[0]][near[1]] in [0]]  # undiscovered places
             p_placed = [near for near in all_near if self.board_copy[near[0]][near[1]] in [-2]]  # discovered places
 
             amount_of_checks = len(p_checks)
@@ -164,6 +125,63 @@ class max_brain(object):
         # visualize the probabilities on the board
         self.view.show_text(p_places)
 
+    def continuing_play(self):
+
+        self.root.update()
+
+        # retrieve the maximum probability
+        max_place = max(self.probabiliy_places, key=self.probabiliy_places.get)
+        max_probability = self.probabiliy_places[max_place]
+
+        # bomb over there
+        if max_probability == 1:
+            self.maximum_assured(max_place)
+
+        else:
+
+            # retrieve the minimum probability
+            min_place = min(self.probabiliy_places, key=self.probabiliy_places.get)
+            min_probability = self.probabiliy_places[min_place]
+
+            # click assured (no bomb)
+            if min_probability == 0:
+                self.minimum_assured(min_place)
+
+            # possibility that missed places that are not updated for the correct probability
+            elif not self.is_probabilities_rechecked:
+                self.is_probabilities_rechecked = True
+                self.recheck_probabilities()
+
+            # in the case we rechecked the probabilities and still didn't obtain assured 100% or 0% probability
+            # then we choose the lowest place and hope it isn't a bomb
+            else:
+                self.is_probabilities_rechecked = False
+                self.minimum_assured(min_place)
+
+        self.continuing_play_call_back()
+
+    def continuing_play_call_back(self):
+        # as long as there are available moves and didn't land on a bomb
+        if self.probabiliy_places != {} and not self.model.is_lost:
+            call_back_id = self.root.after(self.delay, self.continuing_play)
+            self.call_backs.append(call_back_id)
+        else:
+            # end call backs (from the max_brain algorithm only)
+            self.close_call_backs()
+
+            # clean the unnecessary text from the board
+            self.connector.clean_probabilities_from_assured_empty_places()
+
+            # reveal bomb places and show if we won
+            self.connector.update_if_all_marked_bombs_right()
+            self.root.update()
+
+            # how much the algorithm succeeded
+            data = self.check_bombs_accuracy()
+
+            # update the tests - can call another games
+            self.connector.update_tests(data)
+
     # probability of 100 % (1) - bomb
     def maximum_assured(self, max_place):
 
@@ -187,7 +205,7 @@ class max_brain(object):
 
             # update the probabilities of the surrounding labels where there are bombs near of them
             near_positions = self.model.get_next_moves_expanded(row, col)
-            near_positions = [move for move in near_positions if 1 <= self.board[move[0]][move[1]] <= 8]
+            near_positions = [move for move in near_positions if 1 <= self.board_copy[move[0]][move[1]] <= 8]
             p_places = self.probability_checker(near_positions)
 
             self.view.show_text(p_places)
@@ -207,19 +225,22 @@ class max_brain(object):
             updates = self.connector.play(row, col)
             self.view.update_labels(updates)  # update the view details
             self.update_board(updates)  # update the replica board
-            p_places = self.probability_checker(updates)  # places where there are bombs near of them
+            p_places = self.probability_checker(updates)  # obtain nearby probabilities
 
             self.view.show_text(p_places)
             del self.probabiliy_places[min_place]
 
-            # get the additional places near by and their probabilities
+            # get the additional places nearby and their probabilities - mainly for updating visualization
+            # also necessary for logic calculations - we obtain the new places from the connector
+            # and afterwards, we check for the new possibilities surrounding them. however, because of the
+            # recursive check in the model, it is possible we skipped updating the nearby probabilities from
+            # the origin place, leading to false probabilities near them, and may lead to failure.
             near_positions = self.model.get_next_moves_expanded(row, col)
-            near_positions = [move for move in near_positions if 1 <= self.board[move[0]][move[1]] <= 8]
-
+            near_positions = [move for move in near_positions if 1 <= self.board_copy[move[0]][move[1]] <= 8]
             p_places = self.probability_checker(near_positions)
             self.view.show_text(p_places)
 
-            # removes updates from the required checking if they returned as values
+            # remove updates from the required checking if they returned as values (already checked) - duplicates
             self.remove_updates_from_probabilities(updates)
 
     # recheck probabilities - sometimes the algorithm can't update all the probabilities, so we have to recheck updates
@@ -240,7 +261,7 @@ class max_brain(object):
         moves = {}
         for update in updates:
             near_positions = self.model.get_next_moves_expanded(update[0], update[1])
-            near_positions = [move for move in near_positions if 1 <= self.board[move[0]][move[1]] <= 8]
+            near_positions = [move for move in near_positions if 1 <= self.board_copy[move[0]][move[1]] <= 8]
 
             for place in near_positions:
                 value = place[0] * self.length_col + place[1]
@@ -263,7 +284,11 @@ class max_brain(object):
 
             for j in range(self.length_col):
 
-                inner_lst.append(self.model.board[i][j])
+                value = self.model.board[i][j]  # remove bomb locations to make sure we only solve by probabilities
+                if value == 9:
+                    inner_lst.append(0)
+                else:
+                    inner_lst.append(value)
 
             lst.append(inner_lst)
 
@@ -280,7 +305,9 @@ class max_brain(object):
             else:
                 failed_guess += 1
 
-        return "Accuracy: " + str(round((success_guess / len(self.bomb_places)) * 100, 2)) + "%\nSuccess guesses: " + str(success_guess) + "\nFailed guesses: " + str(failed_guess)
+        accuracy = round((success_guess / len(self.bomb_places)) * 100)
+        return [round(accuracy, 2), round(accuracy, 2) == 100]
+        #return "Accuracy: " + str(round((success_guess / len(self.bomb_places)) * 100, 2)) + "%\nSuccess guesses: " + str(success_guess) + "\nFailed guesses: " + str(failed_guess)
 
     def update_board(self, updates):
         for update in updates:
@@ -300,3 +327,31 @@ class max_brain(object):
         for key in keys_to_remove:
             if key in self.probabiliy_places:
                 del self.probabiliy_places[key]
+
+    # remove call backs
+    def close_call_backs(self):
+        for call_back in self.call_backs[:]:
+            try:
+                self.root.after_cancel(call_back)
+                self.call_backs.remove(call_back)
+            except tk.TclError:
+                pass
+
+
+    def reset(self):
+
+        self.board = []
+
+        self.board = self.model.board
+        self.board_copy = []
+
+        self.bomb_places = self.model.bomb_places # real bomb places
+        self.bomb_guess_places = [] # guessed bomb places
+
+        self.probabiliy_places = {} # format of {value: max_probability}
+        self.traveled_places = {} # format of {value: value}
+
+        self.is_probabilities_rechecked = False
+
+        self.delay = S_T.DELAY_MODIFIER
+        self.call_backs = []

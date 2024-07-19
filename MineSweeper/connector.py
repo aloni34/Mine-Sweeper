@@ -1,6 +1,7 @@
 from mine_sweeper import *
 from view import *
 from brain import *
+from test import Test
 
 class Connector(object):
 
@@ -10,6 +11,7 @@ class Connector(object):
         self.model = model(row, col, self)
         self.view = view(row, col, self, root)
         self.brain = max_brain(row, col, self, root, self.model, self.view)
+        self.test = Test(self, root)
 
     # region Methods
 
@@ -35,6 +37,39 @@ class Connector(object):
         self.start.restart()
 
     def brain_play(self):
-        self.brain.play()
+        return self.brain.play()
 
-    # endregion
+    def reset(self):
+        self.view.reset()
+        self.model.reset()
+        self.brain.reset()
+
+    def update_tests(self, data):
+
+        if self.test.current_test < self.test.number_of_tests:
+            print(self.test.current_test)
+            self.reset()
+            self.brain_play()
+            self.test.update_data(data)
+
+        elif self.test.current_test == self.test.number_of_tests:  # in the last test get over here
+            #print(self.test.current_test)
+            self.test.update_data(data)
+            self.test.print_details()
+
+            # save in an Excel
+            if S_T.IS_TO_SAVE:
+                self.test.save_as_a_new_file()
+
+            # update the end of a cycle
+            self.test.update_cycle()
+
+            if self.test.current_cycle < S_T.TEST_CYCLE:  # if there are more cycles, this would handle this
+                self.reset()
+                self.brain_play()
+                self.test.update_data(data)
+            else:
+                S_T.AMOUNT_OF_BOMBS = self.test.amount_of_bombs_on_the_board_in_the_start
+
+
+                # endregion

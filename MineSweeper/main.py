@@ -2,6 +2,7 @@ from connector import *
 from values import *
 from tkinter import *
 
+
 class Start(object):
 
     def __init__(self):
@@ -10,6 +11,9 @@ class Start(object):
         self.controller = ""
 
         self.start()
+
+
+
 
     def start(self):
 
@@ -21,10 +25,13 @@ class Start(object):
 
         self.controller = Connector(S_T.BOARD_WIDTH, S_T.BOARD_HEIGHT, self.root, self)
 
-        self.root.bind('<Control-e>', lambda event: self.root.destroy()) # Exit
+        self.root.bind('<Control-e>', lambda event: self.root.destroy())  # Exit
         self.root.bind('<Control-r>', lambda event: self.restart())  # Restart
 
         self.root.mainloop()
+
+
+
 
     def restart(self):
 
@@ -32,6 +39,8 @@ class Start(object):
         self.root.destroy()
         self.start()
 
+    def reset(self):
+        self.controller.reset()
 
 def main():
 

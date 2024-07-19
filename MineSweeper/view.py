@@ -16,9 +16,11 @@ class view(object):
         self.board = self.create_board(self.frame, rows, columns)
         self.end_button = self.construct_end_button(self.root, 0.02, 0.02, 0.05, 0.05)
         self.restart_button = self.construct_restart_button(self.root, 0.02, 0.1, 0.05, 0.05)
-        self.play_ai =  self.construct_ai_button(self.root, 0.02, 0.18, 0.05, 0.05)
+        self.play_ai = self.construct_ai_button(self.root, 0.02, 0.18, 0.05, 0.05)
+        self.reset_button = self.construct_reset_button(self.root, 0.02, 0.26, 0.05, 0.05)
         self.bombs_label = self.construct_show_amount_of_bombs_label(self.root, 0.5, 0.02, 0.05, 0.05)
         self.time_label = self.construct_time_label(self.root, 0.4, 0.02, 0.05, 0.05)
+
 
         # call backs
         self.call_backs = []
@@ -62,11 +64,18 @@ class view(object):
         button.config(command=self.connector.restart)
         return button
 
+    def construct_reset_button(self, root, r_x, r_y, r_w, r_h):
+        button = ttk.Button(root, text="Reset")
+        button.place(relx=r_x, rely=r_y, relwidth=r_w, relheight=r_h)
+        button.config(command=self.connector.reset)
+        return button
+
     def construct_ai_button(self, root, r_x, r_y, r_w, r_h):
         button = ttk.Button(root, text="AI")
         button.place(relx=r_x, rely=r_y, relwidth=r_w, relheight=r_h)
         button.config(command=self.connector.brain_play)
         return button
+
 
     def construct_show_amount_of_bombs_label(self, root, r_x, r_y, r_w, r_h):
         label = ttk.Label(root, text="Bombs X  " + str(S_T.AMOUNT_OF_BOMBS))
@@ -269,6 +278,39 @@ class view(object):
     def end_game(self):
         self.root.destroy()
 
+    def reset(self):
+
+        self.close_call_backs()
+        self.reset_board()
+
+        # call backs
+        self.call_backs = []
+
+        # variables for call backs
+        self.time = S_T.TIMER
+        self.cycle = self.time * S_T.CLEAR_CYCLE
+        self.seconds = 0
+        self.time_label.config(text="Seconds: "+str(self.seconds))
+        self.bombs_label.config(text="Bombs X  " + str(S_T.AMOUNT_OF_BOMBS))
+        self.update_time()
+        self.cycle_call_backs()
+
+        # marked bombs
+        self.marked_bombs = []
+        self.amount_of_marked_bombs = 0
+
+
+    def reset_board(self):
+
+        color = C_V.EMPTY_LABEL_COLOR_UNCHECKED
+
+        for i in range(self.row):
+            for j in range(self.col):
+                label = self.board[i][j]
+                label.config(background=color, text="")
+                self.bind_all(label)
+
+        self.root.update()
     # endregion
 
     # region Call Backs
@@ -293,11 +335,11 @@ class view(object):
         call_back_id = self.root.after(self.cycle, self.clear_call_backs_call_back)
         self.call_backs.append(call_back_id)
 
-    def clear_call_backs_call_back(self): # call the clearing of all call backs and recalling the call backs
+    def clear_call_backs_call_back(self):  # call the clearing of all call backs and recalling the callbacks
         self.close_call_backs()
         self.recall_call_backs()
 
-    def recall_call_backs(self): # recalling call backs
+    def recall_call_backs(self):  # recalling call backs
         self.cycle_call_backs()
         self.update_time()
 
