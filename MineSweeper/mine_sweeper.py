@@ -1,7 +1,8 @@
 import random
 from values import *
 
-class model(object):
+
+class Model(object):
 
     def __init__(self, rows, columns, connector):
 
@@ -103,7 +104,7 @@ class model(object):
             self.available_place.remove(position)
             self.bomb_places.append(position)
 
-    def get_next_moves(self, row, col): # 4 places
+    def get_next_moves(self, row, col):  # 4 places
 
         directions = [
             (1, 0),  # Down
@@ -120,7 +121,7 @@ class model(object):
 
         return next_moves
 
-    def get_next_moves_expanded(self, row, col): # 8 places
+    def get_next_moves_expanded(self, row, col):  # 8 places
 
         directions = [
             (1, 0),  # Down
@@ -167,4 +168,5 @@ class model(object):
 
         self.is_first = True
         self.is_lost = False
+
     # endregion

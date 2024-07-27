@@ -3,14 +3,15 @@ from view import *
 from brain import *
 from test import Test
 
+
 class Connector(object):
 
-    def __init__(self, row , col, root, start):
+    def __init__(self, row, col, root, start):
 
         self.start = start
-        self.model = model(row, col, self)
-        self.view = view(row, col, self, root)
-        self.brain = max_brain(row, col, self, root, self.model, self.view)
+        self.model = Model(row, col, self)
+        self.view = View(row, col, self, root)
+        self.brain = ProbBrainOptimised(row, col, self, root, self.model, self.view)
         self.test = Test(self, root)
 
     # region Methods
@@ -53,7 +54,6 @@ class Connector(object):
             self.test.update_data(data)
 
         elif self.test.current_test == self.test.number_of_tests:  # in the last test get over here
-            #print(self.test.current_test)
             self.test.update_data(data)
             self.test.print_details()
 
@@ -71,5 +71,4 @@ class Connector(object):
             else:
                 S_T.AMOUNT_OF_BOMBS = self.test.amount_of_bombs_on_the_board_in_the_start
 
-
-                # endregion
+    # endregion

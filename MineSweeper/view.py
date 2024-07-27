@@ -3,7 +3,8 @@ from tkinter import *
 import tkinter as tk
 from tkinter import ttk
 
-class view(object):
+
+class View(object):
 
     def __init__(self, rows, columns, connector, root):
 
@@ -16,11 +17,10 @@ class view(object):
         self.board = self.create_board(self.frame, rows, columns)
         self.end_button = self.construct_end_button(self.root, 0.02, 0.02, 0.05, 0.05)
         self.restart_button = self.construct_restart_button(self.root, 0.02, 0.1, 0.05, 0.05)
-        self.play_ai = self.construct_ai_button(self.root, 0.02, 0.18, 0.05, 0.05)
-        self.reset_button = self.construct_reset_button(self.root, 0.02, 0.26, 0.05, 0.05)
+        self.reset_button = self.construct_reset_button(self.root, 0.02, 0.18, 0.05, 0.05)
+        self.play_ai = self.construct_ai_button(self.root, 0.02, 0.26, 0.05, 0.05)
         self.bombs_label = self.construct_show_amount_of_bombs_label(self.root, 0.5, 0.02, 0.05, 0.05)
         self.time_label = self.construct_time_label(self.root, 0.4, 0.02, 0.05, 0.05)
-
 
         # call backs
         self.call_backs = []
@@ -42,7 +42,6 @@ class view(object):
         # colors
         self.color = self.colors()
         self.font = (S_T.BOARD_WIDTH * S_T.BOARD_HEIGHT) // (self.row * self.col)
-
 
     # region Graphics
 
@@ -76,7 +75,6 @@ class view(object):
         button.config(command=self.connector.brain_play)
         return button
 
-
     def construct_show_amount_of_bombs_label(self, root, r_x, r_y, r_w, r_h):
         label = ttk.Label(root, text="Bombs X  " + str(S_T.AMOUNT_OF_BOMBS))
         label.place(relx=r_x, rely=r_y, relwidth=r_w, relheight=r_h)
@@ -88,6 +86,7 @@ class view(object):
         return label
 
     def colors(self):
+
         dt = {
             -1: C_V.EMPTY_LABEL_COLOR_CHECKED,
             0: C_V.EMPTY_LABEL_COLOR_UNCHECKED,
@@ -138,7 +137,7 @@ class view(object):
 
         if self.connector.mark_bomb(row, col):
 
-            if [row, col] not in self.marked_bombs: # marking
+            if [row, col] not in self.marked_bombs:  # marking
 
                 self.mark_bomb(row, col)
 
@@ -148,7 +147,7 @@ class view(object):
                 # check if we marked all the bombs, if so checks if all the positions match the marked positions
                 self.update_if_all_marked_bombs_right()
 
-            else: # unmarking
+            else:  # unmarking
 
                 self.marked_bombs.remove([row, col])
                 self.update_labels([[row, col, 0]])
@@ -299,7 +298,6 @@ class view(object):
         self.marked_bombs = []
         self.amount_of_marked_bombs = 0
 
-
     def reset_board(self):
 
         color = C_V.EMPTY_LABEL_COLOR_UNCHECKED
@@ -331,7 +329,7 @@ class view(object):
         # Schedule the update_time function to be called after 1000 milliseconds (1 second)
         self.update_time()
 
-    def cycle_call_backs(self): # used to clear call backs from the system on repeat (based on the value of self.cycle)
+    def cycle_call_backs(self):  # used to clear call backs from the system on repeat (based on the value of self.cycle)
         call_back_id = self.root.after(self.cycle, self.clear_call_backs_call_back)
         self.call_backs.append(call_back_id)
 

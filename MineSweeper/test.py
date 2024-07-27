@@ -2,6 +2,7 @@ import pandas as pd
 from values import *
 import os
 
+
 class Test(object):
 
     def __init__(self, connector, root):
@@ -21,7 +22,9 @@ class Test(object):
         self.df1 = self.create_raw_data_dataframe()
         self.df2 = self.create_summarize_dataframe()
 
-    def create_raw_data_dataframe(self):
+    # region Methods
+    @ staticmethod
+    def create_raw_data_dataframe():
 
         data = {
             'Success': [],
@@ -30,7 +33,8 @@ class Test(object):
 
         return pd.DataFrame(data)
 
-    def create_summarize_dataframe(self):
+    @ staticmethod
+    def create_summarize_dataframe():
 
         data = {
             'Wins Amount': [],
@@ -42,7 +46,6 @@ class Test(object):
 
         return pd.DataFrame(data)
 
-
     def update_data(self, data):
         self.df1.loc[len(self.df1)] = [data[0], data[1]]
         self.current_test += 1
@@ -53,7 +56,6 @@ class Test(object):
         S_T.AMOUNT_OF_BOMBS += S_T.STEP
         self.df1 = self.create_raw_data_dataframe()
         self.df2 = self.create_summarize_dataframe()
-
 
     def print_details(self):
 
@@ -92,3 +94,4 @@ class Test(object):
             self.df2.to_excel(writer, sheet_name='Sheet3', index=False)
 
         print(f"File saved to: {path}")
+    # endregion

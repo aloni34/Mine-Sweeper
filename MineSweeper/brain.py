@@ -1,9 +1,10 @@
+import math
 from values import *
 import tkinter as tk
 import random
-import time
 
-class max_brain(object):
+
+class ProbBrainRandomStart(object):
 
     def __init__(self, row, col, connector, root, model, view=None):
 
@@ -19,19 +20,20 @@ class max_brain(object):
         self.board = self.model.board
         self.board_copy = []
 
-        self.bomb_places = self.model.bomb_places # real bomb places
-        self.bomb_guess_places = [] # guessed bomb places
+        self.start_position = []
 
-        self.probabiliy_places = {} # format of {value: max_probability}
-        self.traveled_places = {} # format of {value: value}
+        self.bomb_places = self.model.bomb_places  # real bomb places
+        self.bomb_guess_places = []  # guessed bomb places
+
+        self.probabiliy_places = {}  # format of {value: max_probability}
+        self.traveled_places = {}  # format of {value: value}
 
         self.is_probabilities_rechecked = False
 
         self.delay = S_T.DELAY_MODIFIER
         self.call_backs = []
 
-
-
+    # region Methods
     def play(self):
 
         # first move
@@ -39,7 +41,6 @@ class max_brain(object):
 
         # continuing play
         self.continuing_play_call_back()
-
 
     # check the probability
     def probability_checker(self, moves):
@@ -50,7 +51,7 @@ class max_brain(object):
             row = move[0]
             col = move[1]
 
-            all_near = self.model.get_next_moves_expanded(row, col) # all places nearby
+            all_near = self.model.get_next_moves_expanded(row, col)  # all places nearby
             p_checks = [near for near in all_near if self.board_copy[near[0]][near[1]] in [0]]  # undiscovered places
             p_placed = [near for near in all_near if self.board_copy[near[0]][near[1]] in [-2]]  # discovered places
 
@@ -84,7 +85,7 @@ class max_brain(object):
 
                 for p_check in p_checks:
 
-                    place = p_check[0] * self.length_col + p_check[1] # position
+                    place = p_check[0] * self.length_col + p_check[1]  # position
 
                     if place not in self.probabiliy_places:
                         self.probabiliy_places[place] = probability
@@ -99,10 +100,8 @@ class max_brain(object):
     # first turn
     def first_play(self):
 
-        # random row
-        row = random.randint(0, self.length_row-1) # random row
-        # random col
-        col = random.randint(0, self.length_col-1) # random col
+        # random row & col
+        row, col = self.choose_start()
 
         # play first turn in the model
         updates = self.connector.play(row, col)
@@ -124,6 +123,9 @@ class max_brain(object):
 
         # visualize the probabilities on the board
         self.view.show_text(p_places)
+
+        # saves the beginning coordinates
+        self.start_position = [row, col]
 
     def continuing_play(self):
 
@@ -156,7 +158,7 @@ class max_brain(object):
             # then we choose the lowest place and hope it isn't a bomb
             else:
                 self.is_probabilities_rechecked = False
-                self.minimum_assured(min_place)
+                self.minimum_guess(min_place)
 
         self.continuing_play_call_back()
 
@@ -243,6 +245,10 @@ class max_brain(object):
             # remove updates from the required checking if they returned as values (already checked) - duplicates
             self.remove_updates_from_probabilities(updates)
 
+    # not 100% empty place
+    def minimum_guess(self, min_place):
+        self.minimum_assured(min_place)
+
     # recheck probabilities - sometimes the algorithm can't update all the probabilities, so we have to recheck updates
     def recheck_probabilities(self):
 
@@ -251,7 +257,6 @@ class max_brain(object):
 
         # for every probability_place left -> convert it for a list
         for key in self.probabiliy_places:
-            value = self.probabiliy_places[key]
 
             row = key // self.length_col
             col = key % self.length_col
@@ -284,7 +289,7 @@ class max_brain(object):
 
             for j in range(self.length_col):
 
-                value = self.model.board[i][j]  # remove bomb locations to make sure we only solve by probabilities
+                value = self.model.board[i][j]  # remove bomb (9) locations to make sure we only solve by probabilities
                 if value == 9:
                     inner_lst.append(0)
                 else:
@@ -307,7 +312,6 @@ class max_brain(object):
 
         accuracy = round((success_guess / len(self.bomb_places)) * 100)
         return [round(accuracy, 2), round(accuracy, 2) == 100]
-        #return "Accuracy: " + str(round((success_guess / len(self.bomb_places)) * 100, 2)) + "%\nSuccess guesses: " + str(success_guess) + "\nFailed guesses: " + str(failed_guess)
 
     def update_board(self, updates):
         for update in updates:
@@ -337,6 +341,8 @@ class max_brain(object):
             except tk.TclError:
                 pass
 
+    def choose_start(self):
+         return random.randint(0, self.length_row-1), random.randint(0, self.length_col-1)  # random row & col
 
     def reset(self):
 
@@ -345,13 +351,85 @@ class max_brain(object):
         self.board = self.model.board
         self.board_copy = []
 
-        self.bomb_places = self.model.bomb_places # real bomb places
-        self.bomb_guess_places = [] # guessed bomb places
+        self.bomb_places = self.model.bomb_places  # real bomb places
+        self.bomb_guess_places = []  # guessed bomb places
 
-        self.probabiliy_places = {} # format of {value: max_probability}
-        self.traveled_places = {} # format of {value: value}
+        self.probabiliy_places = {}  # format of {value: max_probability}
+        self.traveled_places = {}  # format of {value: value}
 
         self.is_probabilities_rechecked = False
 
         self.delay = S_T.DELAY_MODIFIER
         self.call_backs = []
+    # endregion
+
+
+class ProbBrainFixedStart(ProbBrainRandomStart):
+
+    def __init__(self, row, col, connector, root, model, view=None):
+        super().__init__(row, col, connector, root, model, view)
+        ProbBrainRandomStart.choose_start = self.choose_start
+
+    # region Methods
+    # first turn (fixed start - center)
+    def choose_start(self):
+        return self.length_row // 2 - 1, self.length_col // 2 - 1  # start in the center
+    # endregion
+
+
+class ProbBrainOptimised(ProbBrainFixedStart):
+
+    def __init__(self, row, col, connector, root, model, view=None):
+        super().__init__(row, col, connector, root, model, view)
+        ProbBrainFixedStart.minimum_guess = self.minimum_guess
+        self.d_all_modifier = 0  # used to give distance a bigger or smaller impact for the value for each move
+        self.d_start_modifier = 1000  # used to give distance a bigger or smaller impact for the value for each move
+        self.p_modifier = 0  # used to give probability a bigger or smaller impact for the value for each move
+
+    # region Methods
+    def minimum_guess(self, min_place):
+        min_place = self.find_optimised_place()
+        self.minimum_assured(min_place)
+
+    # based on the places which have the same minimum probability
+    def find_optimised_place(self):
+
+        places = []
+
+        # saves the probability places in a list format
+        for place in self.probabiliy_places:
+            row = place // self.length_col
+            col = place % self.length_col
+            places.append([row, col, place])
+
+        minimum_value = float('inf')  # distance to make check what is the smallest distance from all the probabilities
+        min_index = 0
+
+        for place in places:
+
+            m_row = place[0]
+            m_col = place[1]
+
+            a_value = 0
+            for inner_place in places:  # gives a value for the distance from all the other probabilities
+                a_value += round(math.sqrt((m_row - inner_place[0]) ** 2 + (m_col - inner_place[1]) ** 2), 2)
+
+            # modifier for the importance of the distance from all the probabilities
+            a_value *= self.d_all_modifier
+            # add to the value the distance from the origin (beginning) with a modifier
+            b_value = round(math.sqrt((m_row - self.start_position[0]) ** 2 + (m_col - self.start_position[1]) ** 2),
+                            2) * self.d_start_modifier
+            # modifier for the importance of the probability
+            c_value = self.probabiliy_places[place[2]] * self.p_modifier
+
+            value = a_value + b_value + c_value
+
+            if value < minimum_value:  # saves the smallest value and the place which has this value
+                # print(value)
+                minimum_value = value
+                min_index = place[2]
+
+        # print(min_index)
+        return min_index
+    # endregion
+

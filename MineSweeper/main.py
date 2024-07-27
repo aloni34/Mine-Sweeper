@@ -9,12 +9,9 @@ class Start(object):
 
         self.root = ""
         self.controller = ""
-
         self.start()
 
-
-
-
+    # region Methods
     def start(self):
 
         self.root = Tk()
@@ -23,15 +20,12 @@ class Start(object):
         self.root.resizable(0, 0)
         self.root['bg'] = C_V.PAGE_COLOR
 
-        self.controller = Connector(S_T.BOARD_WIDTH, S_T.BOARD_HEIGHT, self.root, self)
+        self.controller = Connector(S_T.BOARD_HEIGHT, S_T.BOARD_WIDTH, self.root, self)
 
         self.root.bind('<Control-e>', lambda event: self.root.destroy())  # Exit
         self.root.bind('<Control-r>', lambda event: self.restart())  # Restart
 
         self.root.mainloop()
-
-
-
 
     def restart(self):
 
@@ -41,6 +35,8 @@ class Start(object):
 
     def reset(self):
         self.controller.reset()
+    # endregion
+
 
 def main():
 
