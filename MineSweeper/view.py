@@ -124,13 +124,13 @@ class View(object):
         if value == 0 or value == 9:
             hover_label.config(background=self.color[0])
 
-    def action_right_click(self, event):
+    def action_left_click(self, event):
 
         row, col = self.retrieve_label_location(event)
         updates = self.connector.play(row, col)
         self.update_labels(updates)
 
-    def action_left_click(self, event):
+    def action_right_click(self, event):
 
         row, col = self.retrieve_label_location(event)
         cur_label = self.board[row][col]
@@ -265,8 +265,8 @@ class View(object):
     def bind_all(self, cur_label):
         cur_label.bind("<Enter>", self.hover_on) # hover on
         cur_label.bind("<Leave>", self.hover_off) # hover off
-        cur_label.bind("<Button-1>", self.action_right_click) # right click
-        cur_label.bind("<Button-3>", self.action_left_click) # left click
+        cur_label.bind("<Button-1>", self.action_left_click) # left click
+        cur_label.bind("<Button-3>", self.action_right_click) # right click
 
     def unbind_all(self, cur_label):
         cur_label.unbind("<Enter>")

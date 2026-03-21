@@ -10,9 +10,16 @@ class Connector(object):
 
         self.start = start
         self.model = Model(row, col, self)
-        self.view = View(row, col, self, root)
-        self.brain = ProbBrainOptimised(row, col, self, root, self.model, self.view)
         self.test = Test(self, root)
+        self.root = root;
+        if S_T.IS_TO_VIEW:
+            self.view = View(row, col, self, root)
+            self.brain = ProbBrainCornerStart(row, col, self, root, self.model, self.view)
+        else:
+            self.view = None
+            self.brain = ProbBrainCornerStart(row, col, self, root, self.model, self.view)
+            # Automatically starts to ai play if we don't want to see the visuals
+            self.brain_play()
 
     # region Methods
 
@@ -32,7 +39,8 @@ class Connector(object):
         self.view.update_if_all_marked_bombs_right()
 
     def close_call_backs(self):
-        self.view.close_call_backs()
+        if S_T.IS_TO_VIEW:
+            self.view.close_call_backs()
 
     def restart(self):
         self.start.restart()
@@ -41,7 +49,8 @@ class Connector(object):
         return self.brain.play()
 
     def reset(self):
-        self.view.reset()
+        if S_T.IS_TO_VIEW:
+            self.view.reset()
         self.model.reset()
         self.brain.reset()
 
@@ -70,5 +79,8 @@ class Connector(object):
                 self.test.update_data(data)
             else:
                 S_T.AMOUNT_OF_BOMBS = self.test.amount_of_bombs_on_the_board_in_the_start
+                self.root.destroy()   # end root
 
+    def case_reveal(self):
+        self.view.case_reveal()
     # endregion

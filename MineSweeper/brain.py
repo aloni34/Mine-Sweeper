@@ -107,7 +107,8 @@ class ProbBrainRandomStart(object):
         updates = self.connector.play(row, col)
 
         # update the view details
-        self.view.update_labels(updates)
+        if S_T.IS_TO_VIEW:
+            self.view.update_labels(updates)
 
         # copy a replica of the current board for adjustment and checks for bomb locations
         # and for changes which were made in the other board.
@@ -122,7 +123,8 @@ class ProbBrainRandomStart(object):
         p_places = self.probability_checker([move for move in updates if 1 <= self.board_copy[move[0]][move[1]] <= 8])
 
         # visualize the probabilities on the board
-        self.view.show_text(p_places)
+        if S_T.IS_TO_VIEW:
+            self.view.show_text(p_places)
 
         # saves the beginning coordinates
         self.start_position = [row, col]
@@ -171,11 +173,12 @@ class ProbBrainRandomStart(object):
             # end call backs (from the max_brain algorithm only)
             self.close_call_backs()
 
-            # clean the unnecessary text from the board
-            self.connector.clean_probabilities_from_assured_empty_places()
+            if S_T.IS_TO_VIEW:
+                # clean the unnecessary text from the board
+                self.connector.clean_probabilities_from_assured_empty_places()
 
-            # reveal bomb places and show if we won
-            self.connector.update_if_all_marked_bombs_right()
+                # reveal bomb places and show if we won
+                self.connector.update_if_all_marked_bombs_right()
             self.root.update()
 
             # how much the algorithm succeeded
@@ -200,7 +203,7 @@ class ProbBrainRandomStart(object):
             # add the guessed bomb location for the list
             self.bomb_guess_places.append([row, col])
 
-            if [row, col] not in self.view.marked_bombs:
+            if S_T.IS_TO_VIEW and [row, col] not in self.view.marked_bombs:
                 self.view.mark_bomb(row, col)
 
             del self.probabiliy_places[max_place]
@@ -210,7 +213,8 @@ class ProbBrainRandomStart(object):
             near_positions = [move for move in near_positions if 1 <= self.board_copy[move[0]][move[1]] <= 8]
             p_places = self.probability_checker(near_positions)
 
-            self.view.show_text(p_places)
+            if S_T.IS_TO_VIEW:
+                self.view.show_text(p_places)
 
     # probability of 0 % (0) - no bomb
     def minimum_assured(self, min_place):
@@ -225,11 +229,15 @@ class ProbBrainRandomStart(object):
 
             # update the model that we click and receive updates about new places that we can check
             updates = self.connector.play(row, col)
-            self.view.update_labels(updates)  # update the view details
+            if S_T.IS_TO_VIEW:
+                self.view.update_labels(updates)  # update the view details
+
             self.update_board(updates)  # update the replica board
             p_places = self.probability_checker(updates)  # obtain nearby probabilities
 
-            self.view.show_text(p_places)
+            if S_T.IS_TO_VIEW:
+                self.view.show_text(p_places)
+
             del self.probabiliy_places[min_place]
 
             # get the additional places nearby and their probabilities - mainly for updating visualization
@@ -240,7 +248,8 @@ class ProbBrainRandomStart(object):
             near_positions = self.model.get_next_moves_expanded(row, col)
             near_positions = [move for move in near_positions if 1 <= self.board_copy[move[0]][move[1]] <= 8]
             p_places = self.probability_checker(near_positions)
-            self.view.show_text(p_places)
+            if S_T.IS_TO_VIEW:
+                self.view.show_text(p_places)
 
             # remove updates from the required checking if they returned as values (already checked) - duplicates
             self.remove_updates_from_probabilities(updates)
@@ -275,9 +284,10 @@ class ProbBrainRandomStart(object):
 
         for move in moves:
             p_places = self.probability_checker([moves[move]])
-            for p_place in p_places:
-                if p_place in self.view.marked_bombs:
-                    p_places.remove(p_place)
+            if S_T.IS_TO_VIEW:
+                for p_place in p_places:
+                    if p_place in self.view.marked_bombs:
+                        p_places.remove(p_place)
 
     def copy_board(self):
 
@@ -364,7 +374,7 @@ class ProbBrainRandomStart(object):
     # endregion
 
 
-class ProbBrainFixedStart(ProbBrainRandomStart):
+class ProbBrainCenterStart(ProbBrainRandomStart):
 
     def __init__(self, row, col, connector, root, model, view=None):
         super().__init__(row, col, connector, root, model, view)
@@ -377,14 +387,27 @@ class ProbBrainFixedStart(ProbBrainRandomStart):
     # endregion
 
 
-class ProbBrainOptimised(ProbBrainFixedStart):
+class ProbBrainCornerStart(ProbBrainRandomStart):
 
     def __init__(self, row, col, connector, root, model, view=None):
         super().__init__(row, col, connector, root, model, view)
-        ProbBrainFixedStart.minimum_guess = self.minimum_guess
-        self.d_all_modifier = 0  # used to give distance a bigger or smaller impact for the value for each move
-        self.d_start_modifier = 1000  # used to give distance a bigger or smaller impact for the value for each move
-        self.p_modifier = 0  # used to give probability a bigger or smaller impact for the value for each move
+        ProbBrainRandomStart.choose_start = self.choose_start
+
+    # region Methods
+    # first turn (fixed start - top left corner)
+    def choose_start(self):
+        return 0, 0  # start in the top left corner
+    # endregion
+
+
+class ProbBrainOptimised(ProbBrainCenterStart):
+
+    def __init__(self, row, col, connector, root, model, view=None):
+        super().__init__(row, col, connector, root, model, view)
+        ProbBrainCenterStart.minimum_guess = self.minimum_guess
+        self.d_all_modifier = 3  # used to give distance a bigger or smaller impact for the value for each move
+        self.d_start_modifier = 0  # used to give distance a bigger or smaller impact for the value for each move
+        self.p_modifier = 10  # used to give probability a bigger or smaller impact for the value for each move
 
     # region Methods
     def minimum_guess(self, min_place):
@@ -431,5 +454,6 @@ class ProbBrainOptimised(ProbBrainFixedStart):
 
         # print(min_index)
         return min_index
+
     # endregion
 

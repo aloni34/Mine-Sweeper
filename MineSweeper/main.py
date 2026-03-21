@@ -27,6 +27,7 @@ class Start(object):
 
         self.root.mainloop()
 
+
     def restart(self):
 
         self.controller.close_call_backs()
